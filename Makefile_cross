@@ -1,0 +1,64 @@
+# Makefile — Bootability Checker v2.0 (Cross-Platform)
+#
+# Détecte automatiquement l'OS et applique les bonnes options.
+#
+# Usage :
+#   make          → compile pour l'OS courant
+#   make install  → installe dans /usr/local/sbin (Unix)
+#   make clean    → nettoie
+
+CC     = cc
+CFLAGS = -std=c99 -Wall -Wextra -Wpedantic -O2
+TARGET = bootability_checker
+SRC    = bootability_checker_cross.c
+PREFIX = /usr/local
+
+UNAME_S := $(shell uname -s 2>/dev/null || echo "Windows")
+
+ifeq ($(UNAME_S), Linux)
+    CFLAGS += -D_GNU_SOURCE
+    $(info [INFO] Cible : Linux)
+endif
+
+ifeq ($(UNAME_S), FreeBSD)
+    $(info [INFO] Cible : FreeBSD)
+endif
+
+ifeq ($(UNAME_S), Darwin)
+    CC     = clang
+    $(info [INFO] Cible : macOS)
+endif
+
+ifeq ($(UNAME_S), OpenBSD)
+    $(info [INFO] Cible : OpenBSD)
+endif
+
+ifeq ($(UNAME_S), NetBSD)
+    $(info [INFO] Cible : NetBSD)
+endif
+
+ifeq ($(UNAME_S), Windows)
+    # Windows : compilation avec MSVC ou MinGW
+    CC     = cl
+    CFLAGS = /W4 /O2
+    TARGET = bootability_checker.exe
+    $(info [INFO] Cible : Windows)
+endif
+
+.PHONY: all clean install uninstall
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+	@echo "Compilation réussie : ./$(TARGET)"
+
+install: $(TARGET)
+	install -m 0755 -o root $(TARGET) $(PREFIX)/sbin/$(TARGET)
+	@echo "Installé dans $(PREFIX)/sbin/$(TARGET)"
+
+uninstall:
+	rm -f $(PREFIX)/sbin/$(TARGET)
+
+clean:
+	rm -f $(TARGET) $(TARGET).exe *.o

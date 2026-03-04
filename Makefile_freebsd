@@ -1,0 +1,29 @@
+# Makefile — Bootability Checker v2.0 (FreeBSD)
+# Usage :
+#   make          → compile
+#   make install  → installe dans /usr/local/sbin
+#   make clean    → supprime les binaires
+
+CC      = cc
+CFLAGS  = -std=c99 -Wall -Wextra -Wpedantic -O2
+TARGET  = bootability_checker
+SRC     = bootability_checker_freebsd.c
+PREFIX  = /usr/local
+
+.PHONY: all clean install uninstall
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+	@echo "Compilation réussie : ./$(TARGET)"
+
+install: $(TARGET)
+	install -m 0755 -o root -g wheel $(TARGET) $(PREFIX)/sbin/$(TARGET)
+	@echo "Installé dans $(PREFIX)/sbin/$(TARGET)"
+
+uninstall:
+	rm -f $(PREFIX)/sbin/$(TARGET)
+
+clean:
+	rm -f $(TARGET)
