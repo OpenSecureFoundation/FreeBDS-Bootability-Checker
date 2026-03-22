@@ -158,22 +158,6 @@ L'implémentation utilise le polynôme ANSI CCITT `0x04C11DB7` (représentation 
 
 ---
 
-## Corrections apportées vs v1.0
-
-| Problème v1.0 | Correction v2.0 |
-|---------------|----------------|
-| `read()` séquentiel → désynchronisation | `pread()` avec LBA × taille secteur |
-| GPT = BOOTABLE (faux positif) | Parse table de partitions → ESP requis |
-| `0x55AA` = BIOS bootable (faux positif) | Vérification flag `0x80` partition active |
-| Pas de CRC32 GPT | CRC32 ANSI header + partition array |
-| `SECTOR_SIZE` hardcodé 512 | Détection 4Kn via `ioctl` |
-| Pas de CLI args | `--all`, chemin direct, `--help`, `--version` |
-| Couleurs ANSI en non-TTY | `isatty()` avant activation des couleurs |
-| `scanf` sans nettoyage buffer | Nettoyage systématique après `scanf` |
-| `disk_list[1024]` insuffisant | `raw[4096]` + filtre sur types de disques |
-
----
-
 ## Licence
 
 MIT — Voir fichier `LICENSE`
