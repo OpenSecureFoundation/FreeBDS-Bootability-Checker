@@ -27,8 +27,6 @@
  * Licence : MIT
  */
 
-#define _POSIX_C_SOURCE 200809L
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -38,8 +36,8 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#include <sys/disk.h>        /* DIOCGSECTORSIZE, DIOCGMEDIASIZE */
 #include <sys/ioctl.h>
+#include <sys/disk.h>        /* DIOCGSECTORSIZE, DIOCGMEDIASIZE */
 
 /* =========================================================================
  * Constantes
@@ -391,7 +389,7 @@ static void analyze_gpt(int fd, const uint8_t *sector1,
  * ========================================================================= */
 static uint32_t detect_sector_size(int fd)
 {
-    u_int sector_size = 0;
+    uint32_t sector_size = 0;
     if (ioctl(fd, DIOCGSECTORSIZE, &sector_size) == 0 && sector_size > 0)
         return (uint32_t)sector_size;
     return DEFAULT_SECTOR;  /* fallback */
