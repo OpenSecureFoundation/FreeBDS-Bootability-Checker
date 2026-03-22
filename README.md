@@ -1,8 +1,6 @@
 # Bootability Checker v2.0
 
-**Auteurs** : DZOUAKEU FESSI Emmanuella Cindy · YAKAM TCHAMOU Rick Vadel  
-**Examinateur** : M. NGUIMBUS, enseignant de SE  
-**Institut** : Institut Universitaire Saint Jean
+**Auteurs** : DZOUAKEU FESSI Emmanuella Cindy · YAKAM TCHAMOU Rick Vadel 
 
 ---
 
