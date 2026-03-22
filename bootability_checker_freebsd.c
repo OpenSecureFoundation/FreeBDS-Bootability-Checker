@@ -4,8 +4,6 @@
  * Bootability Checker - Iteration 1 : FreeBSD natif
  * Auteurs  : DZOUAKEU FESSI Emmanuella Cindy
  *            YAKAM TCHAMOU Rick Vadel
- * Examinateur : M. NGUIMBUS, enseignant de SE
- * Institut : Institut Universitaire Saint Jean
  *
  * Description :
  *   Outil d'analyse bas niveau de la bootabilité d'un disque physique
