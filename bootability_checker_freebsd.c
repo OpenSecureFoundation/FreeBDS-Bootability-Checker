@@ -4,8 +4,6 @@
  * Bootability Checker - Iteration 1 : FreeBSD natif
  * Auteurs  : DZOUAKEU FESSI Emmanuella Cindy
  *            YAKAM TCHAMOU Rick Vadel
- * Examinateur : M. NGUIMBUS, enseignant de SE
- * Institut : Institut Universitaire Saint Jean
  *
  * Description :
  *   Outil d'analyse bas niveau de la bootabilité d'un disque physique
@@ -39,8 +37,7 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/ioctl.h>
-#include <sys/disk.h>
-#include <sys/stat.h>   /* mkdir */        /* DIOCGSECTORSIZE, DIOCGMEDIASIZE */
+#include <sys/disk.h>        /* DIOCGSECTORSIZE, DIOCGMEDIASIZE */
 
 /* =========================================================================
  * Constantes
@@ -138,47 +135,6 @@ static const uint8_t GUID_FREEBSD_SWAP[16] = {
 /* GUID vide (entrée non utilisée) */
 static const uint8_t GUID_ZERO[16] = { 0 };
 
-/*
- * Linux root x86-64 : 4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709
- * → sur disque : E3 BC 68 4F  CD E8  B1 4D  96 E7  FB CA F9 84 B7 09
- */
-static const uint8_t GUID_LINUX_ROOT[16] = {
-    0xE3, 0xBC, 0x68, 0x4F,  0xCD, 0xE8,  0xB1, 0x4D,
-    0x96, 0xE7, 0xFB, 0xCA,  0xF9, 0x84,  0xB7, 0x09
-};
-/*
- * Linux home/data : EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
- * → sur disque : A2 A0 D0 EB  E5 B9  33 44  87 C0  68 B6 B7 26 99 C7
- */
-static const uint8_t GUID_LINUX_DATA[16] = {
-    0xA2, 0xA0, 0xD0, 0xEB,  0xE5, 0xB9,  0x33, 0x44,
-    0x87, 0xC0, 0x68, 0xB6,  0xB7, 0x26,  0x99, 0xC7
-};
-/*
- * Microsoft Reserved : E3C9E316-0B5C-4DB8-817D-F92DF00215AE
- * → sur disque : 16 E3 C9 E3  5C 0B  B8 4D  81 7D  F9 2D F0 02 15 AE
- */
-static const uint8_t GUID_MS_RESERVED[16] = {
-    0x16, 0xE3, 0xC9, 0xE3,  0x5C, 0x0B,  0xB8, 0x4D,
-    0x81, 0x7D, 0xF9, 0x2D,  0xF0, 0x02,  0x15, 0xAE
-};
-/*
- * Apple HFS+ : 48465300-0000-11AA-AA11-00306543ECAC
- * → sur disque : 00 53 46 48  00 00  AA 11  AA 11  00 30 65 43 EC AC
- */
-static const uint8_t GUID_APPLE_HFS[16] = {
-    0x00, 0x53, 0x46, 0x48,  0x00, 0x00,  0xAA, 0x11,
-    0xAA, 0x11, 0x00, 0x30,  0x65, 0x43,  0xEC, 0xAC
-};
-/*
- * Apple APFS : 7C3457EF-0000-11AA-AA11-00306543ECAC
- * → sur disque : EF 57 34 7C  00 00  AA 11  AA 11  00 30 65 43 EC AC
- */
-static const uint8_t GUID_APPLE_APFS[16] = {
-    0xEF, 0x57, 0x34, 0x7C,  0x00, 0x00,  0xAA, 0x11,
-    0xAA, 0x11, 0x00, 0x30,  0x65, 0x43,  0xEC, 0xAC
-};
-
 /* =========================================================================
  * Couleurs ANSI — désactivées automatiquement si stdout n'est pas un TTY
  * ========================================================================= */
@@ -210,18 +166,11 @@ typedef struct {
     int  gpt_has_fbsd_boot;   /* Partition freebsd-boot trouvée */
     int  gpt_has_fbsd_ufs;    /* Partition freebsd-ufs trouvée */
     int  gpt_has_fbsd_zfs;    /* Partition freebsd-zfs trouvée */
-    int  gpt_has_linux;       /* Partition Linux trouvée */
-    int  gpt_has_windows;     /* Partition Windows (MSR) trouvée */
-    int  gpt_has_macos;       /* Partition macOS (HFS+/APFS) trouvée */
 
     /* Disque */
     uint32_t sector_size;     /* Taille de secteur détectée */
     uint64_t disk_size_bytes; /* Taille totale en octets */
     int  is_hybrid;           /* MBR protectif + GPT valide */
-
-    /* Système d'exploitation installé (lu depuis la partition) */
-    char installed_os[128];   /* Nom exact lu depuis /etc/os-release ou equivalent */
-    int  os_found_on_disk;    /* 1 si un OS complet est détecté sur la partition */
 
     /* Verdict final */
     int  bootable_bios;
@@ -427,14 +376,6 @@ static void analyze_gpt(int fd, const uint8_t *sector1,
             r->gpt_has_fbsd_ufs = 1;
         else if (memcmp(type_guid, GUID_FREEBSD_ZFS, 16) == 0)
             r->gpt_has_fbsd_zfs = 1;
-        else if (memcmp(type_guid, GUID_LINUX_ROOT, 16) == 0 ||
-                 memcmp(type_guid, GUID_LINUX_DATA, 16) == 0)
-            r->gpt_has_linux = 1;
-        else if (memcmp(type_guid, GUID_MS_RESERVED, 16) == 0)
-            r->gpt_has_windows = 1;
-        else if (memcmp(type_guid, GUID_APPLE_HFS,  16) == 0 ||
-                 memcmp(type_guid, GUID_APPLE_APFS, 16) == 0)
-            r->gpt_has_macos = 1;
     }
 
     free(part_array);
@@ -463,168 +404,6 @@ static uint64_t detect_disk_size(int fd)
     if (ioctl(fd, DIOCGMEDIASIZE, &media_size) == 0 && media_size > 0)
         return (uint64_t)media_size;
     return 0;
-}
-
-/* =========================================================================
- * Lecture du nom de l'OS depuis /etc/os-release (Linux)
- * Retourne 1 si trouvé, 0 sinon
- * ========================================================================= */
-static int read_os_release(const char *mount_point, char *out, size_t outlen)
-{
-    char path[256];
-    char line[512];
-    FILE *f;
-
-    snprintf(path, sizeof(path), "%s/etc/os-release", mount_point);
-    f = fopen(path, "r");
-    if (!f) {
-        /* Essayer /usr/lib/os-release en fallback */
-        snprintf(path, sizeof(path), "%s/usr/lib/os-release", mount_point);
-        f = fopen(path, "r");
-    }
-    if (!f) return 0;
-
-    while (fgets(line, sizeof(line), f)) {
-        /* Chercher PRETTY_NAME="Ubuntu 22.04 LTS" */
-        if (strncmp(line, "PRETTY_NAME=", 12) == 0) {
-            char *val = line + 12;
-            size_t len = strlen(val);
-            /* Supprimer le newline final */
-            if (len > 0 && val[len-1] == '\n') val[--len] = '\0';
-            /* Supprimer les guillemets */
-            if (len > 1 && val[0] == '"' && val[len-1] == '"') {
-                val[len-1] = '\0';
-                val++;
-            }
-            snprintf(out, outlen, "%s", val);
-            fclose(f);
-            return 1;
-        }
-    }
-    fclose(f);
-    return 0;
-}
-
-/* =========================================================================
- * Lecture de la version FreeBSD depuis /etc/motd ou /bin/freebsd-version
- * ========================================================================= */
-static int read_freebsd_version(const char *mount_point, char *out, size_t outlen)
-{
-    char path[256];
-    char line[256];
-    FILE *f;
-
-    /* Lire /etc/freebsd-update.conf ou /bin/freebsd-version n'est pas
-     * facilement parsable monté — on lit /etc/motd qui contient la version */
-    snprintf(path, sizeof(path), "%s/etc/motd.template", mount_point);
-    f = fopen(path, "r");
-    if (!f) {
-        snprintf(path, sizeof(path), "%s/etc/motd", mount_point);
-        f = fopen(path, "r");
-    }
-    if (f) {
-        if (fgets(line, sizeof(line), f)) {
-            size_t len = strlen(line);
-            if (len > 0 && line[len-1] == '\n') line[--len] = '\0';
-            if (len > 4) {
-                snprintf(out, outlen, "%s", line);
-                fclose(f);
-                return 1;
-            }
-        }
-        fclose(f);
-    }
-
-    /* Fallback : vérifier juste l'existence de /etc/rc (signature FreeBSD) */
-    snprintf(path, sizeof(path), "%s/etc/rc", mount_point);
-    f = fopen(path, "r");
-    if (f) {
-        fclose(f);
-        snprintf(out, outlen, "FreeBSD");
-        return 1;
-    }
-    return 0;
-}
-
-/* =========================================================================
- * Tentative de montage et détection de l'OS installé sur le disque
- * Essaie de monter les partitions connues et de lire les fichiers système
- * ========================================================================= */
-static void detect_installed_os(const char *disk_path, DiskReport *r)
-{
-    /* Suffixes de partitions à essayer : p1, p2, p3, p4 */
-    const char *suffixes[] = { "p2", "p3", "p1", "p4", NULL };
-    const char *mount_point = "/tmp/_bootchk_mnt";
-    char part_path[256];
-    char cmd[512];
-    char os_name[128];
-    int  i;
-
-    r->os_found_on_disk = 0;
-    r->installed_os[0]  = '\0';
-
-    /* Créer le point de montage temporaire */
-    mkdir(mount_point, 0700);
-
-    for (i = 0; suffixes[i] != NULL; i++) {
-        snprintf(part_path, sizeof(part_path), "%s%s", disk_path, suffixes[i]);
-
-        /* Vérifier que la partition existe */
-        {
-            int fd = open(part_path, O_RDONLY);
-            if (fd < 0) continue;
-            close(fd);
-        }
-
-        /* ---- Essai montage UFS (FreeBSD) ---- */
-        snprintf(cmd, sizeof(cmd),
-                 "mount -t ufs -o ro %s %s 2>/dev/null",
-                 part_path, mount_point);
-        if (system(cmd) == 0) {
-            if (read_freebsd_version(mount_point, os_name, sizeof(os_name))) {
-                snprintf(r->installed_os, sizeof(r->installed_os), "%s", os_name);
-                r->os_found_on_disk = 1;
-            }
-            system("umount " "/tmp/_bootchk_mnt" " 2>/dev/null");
-            if (r->os_found_on_disk) return;
-        }
-
-        /* ---- Essai montage ext4/ext3/ext2 (Linux) ---- */
-        snprintf(cmd, sizeof(cmd),
-                 "mount -t ext4 -o ro %s %s 2>/dev/null",
-                 part_path, mount_point);
-        if (system(cmd) == 0) {
-            if (read_os_release(mount_point, os_name, sizeof(os_name))) {
-                snprintf(r->installed_os, sizeof(r->installed_os), "%s", os_name);
-                r->os_found_on_disk = 1;
-            }
-            system("umount " "/tmp/_bootchk_mnt" " 2>/dev/null");
-            if (r->os_found_on_disk) return;
-        }
-
-        /* ---- Essai montage FAT32 (Windows ESP ou Linux) ---- */
-        snprintf(cmd, sizeof(cmd),
-                 "mount -t msdosfs -o ro %s %s 2>/dev/null",
-                 part_path, mount_point);
-        if (system(cmd) == 0) {
-            /* Windows : chercher \Windows\System32 */
-            {
-                char winpath[256];
-                snprintf(winpath, sizeof(winpath),
-                         "%s/Windows/System32", mount_point);
-                if (access(winpath, F_OK) == 0) {
-                    snprintf(r->installed_os, sizeof(r->installed_os),
-                             "Microsoft Windows");
-                    r->os_found_on_disk = 1;
-                }
-            }
-            system("umount " "/tmp/_bootchk_mnt" " 2>/dev/null");
-            if (r->os_found_on_disk) return;
-        }
-    }
-
-    /* Nettoyage */
-    rmdir(mount_point);
 }
 
 /* =========================================================================
@@ -758,49 +537,25 @@ static void print_report(const char *path, const DiskReport *r)
     printf("%s=================================================%s\n",
            COL(CYN), COL(RESET));
 
-    /* ============================================================
-     * CAS 1 : Bootable + OS installé détecté sur la partition
-     * ============================================================ */
-    if ((r->bootable_bios || r->bootable_uefi) && r->os_found_on_disk) {
-        printf("  %s%s✓ BOOTABLE%s\n", COL(BOLD), COL(GRN), COL(RESET));
-        printf("\n  %s→ Cette cle contient un systeme %s%s%s installe et bootable%s\n",
-               COL(BOLD),
-               COL(GRN), r->installed_os, COL(BOLD),
-               COL(RESET));
-    }
-    /* ============================================================
-     * CAS 2 : Bootable SANS OS installé détecté
-     * ============================================================ */
-    else if (r->bootable_bios && r->bootable_uefi) {
+    if (r->bootable_bios && r->bootable_uefi) {
         printf("  %s%s✓ BOOTABLE — BIOS (Legacy) + UEFI (Dual Mode)%s\n",
                COL(BOLD), COL(GRN), COL(RESET));
-        printf("  %s→ Bootable mais aucun systeme installe detecte%s\n",
-               COL(YEL), COL(RESET));
     } else if (r->bootable_bios) {
         printf("  %s%s✓ BOOTABLE — BIOS (Legacy / MBR ou GPT+freebsd-boot)%s\n",
                COL(BOLD), COL(GRN), COL(RESET));
-        printf("  %s→ Bootable mais aucun systeme installe detecte%s\n",
-               COL(YEL), COL(RESET));
     } else if (r->bootable_uefi) {
         printf("  %s%s✓ BOOTABLE — UEFI (GPT + ESP)%s\n",
                COL(BOLD), COL(GRN), COL(RESET));
-        printf("  %s→ Bootable mais aucun systeme installe detecte%s\n",
-               COL(YEL), COL(RESET));
-    }
-    /* ============================================================
-     * CAS 3 : Non bootable — stockage simple
-     * ============================================================ */
-    else {
+    } else {
         printf("  %s%s✗ NON BOOTABLE%s\n",
                COL(BOLD), COL(RED), COL(RESET));
-        printf("  %s→ Stockage simple%s\n", COL(YEL), COL(RESET));
 
         /* Aide diagnostique */
         printf("\n  %sDiagnostic :%s\n", COL(YEL), COL(RESET));
         if (!r->mbr_signature_ok && !r->gpt_header_found)
-            printf("    → Ni MBR ni GPT trouves — disque non partitionne ou corrompu.\n");
+            printf("    → Ni MBR ni GPT trouvés — disque non partitionné ou corrompu.\n");
         if (r->mbr_signature_ok && !r->mbr_active_part && !r->mbr_is_protective)
-            printf("    → MBR present mais aucune partition marquee active.\n");
+            printf("    → MBR présent mais aucune partition marquée active.\n");
         if (r->gpt_header_found && !r->gpt_header_crc_ok)
             printf("    → Header GPT corrompu (CRC invalide).\n");
         if (r->gpt_header_found && r->gpt_header_crc_ok &&
@@ -865,10 +620,6 @@ static int analyze_disk(const char *path)
     compute_verdict(&r);
 
     close(fd);
-
-    /* Tentative de détection de l'OS installé (après fermeture du fd brut) */
-    if (r.bootable_bios || r.bootable_uefi)
-        detect_installed_os(path, &r);
 
     /* Rapport */
     print_report(path, &r);
