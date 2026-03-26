@@ -11,6 +11,8 @@
  * Bootability Checker - Iteration 2 : Cross-Platform
  * Auteurs  : DZOUAKEU FESSI Emmanuella Cindy
  *            YAKAM TCHAMOU Rick Vadel
+ * Examinateur : M. NGUIMBUS, enseignant de SE
+ * Institut : Institut Universitaire Saint Jean
  *
  * Plateformes supportées :
  *   - FreeBSD   (DIOCGSECTORSIZE / kern.disks)
